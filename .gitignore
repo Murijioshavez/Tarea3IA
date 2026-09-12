@@ -1,1 +1,9 @@
-\.venv
+.venv/
+.venv313/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Runtime uploads and locally cached Hugging Face model weights
+uploads/
+.cache/

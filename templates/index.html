@@ -4,11 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chronos Forecast</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
 
-    <h1>Predicción de series temporales</h1>
-    <p>Chronos-2 + Flask</p>
+    <main class="page-shell">
+        <header class="hero">
+            <p class="eyebrow">Forecasting de series temporales</p>
+            <h1>Chronos Forecast</h1>
+            <p>Carga un CSV, configura la serie y obtén predicciones con Chronos-2.</p>
+        </header>
+        <section class="card" aria-labelledby="upload-title">
+            <div class="section-heading"><div><p class="step">1</p><h2 id="upload-title">Carga un dataset</h2></div><span class="hint">Solo CSV · máximo 10 MB</span></div>
+            <form id="upload-form" class="upload-form">
+                <label class="file-picker" for="csv-file"><span>Seleccionar archivo CSV</span><input id="csv-file" name="file" type="file" accept=".csv,text/csv" required></label>
+                <span id="selected-file" class="file-name">Ningún archivo seleccionado</span>
+                <button type="submit" class="button">Cargar y previsualizar</button>
+            </form>
+        </section>
+        <section id="dataset-section" class="card hidden" aria-labelledby="dataset-title">
+            <div class="section-heading"><div><p class="step">2</p><h2 id="dataset-title">Configura el forecast</h2></div><span id="dataset-summary" class="hint"></span></div>
+            <div class="table-wrapper"><table id="preview-table"><caption>Vista previa del dataset</caption><thead></thead><tbody></tbody></table></div>
+            <form id="forecast-form" class="forecast-form">
+                <label>Columna temporal<select id="timestamp-column" required></select></label>
+                <label>Variables a pronosticar<select id="target-columns" multiple required size="4" aria-describedby="target-help"></select><small id="target-help">Usa Ctrl/Cmd para seleccionar varias variables.</small></label>
+                <label>Horizonte<input id="horizon" type="number" min="1" max="1024" value="12" required><small>Número de periodos futuros (1–1024).</small></label>
+                <button type="submit" class="button">Generar forecast</button>
+            </form>
+        </section>
+        <section id="results-section" class="card hidden" aria-labelledby="results-title">
+            <div class="section-heading"><div><p class="step">3</p><h2 id="results-title">Resultados</h2></div><span id="forecast-summary" class="hint"></span></div>
+            <div class="chart-wrapper"><canvas id="forecast-chart" aria-label="Gráfica de datos históricos y forecast" role="img"></canvas></div>
+            <div class="table-wrapper"><table id="forecast-table"><caption>Valores pronosticados</caption><thead></thead><tbody></tbody></table></div>
+        </section>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+    </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </body>
 </html>
