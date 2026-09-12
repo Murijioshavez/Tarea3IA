@@ -34,6 +34,10 @@
         </section>
         <section id="results-section" class="card hidden" aria-labelledby="results-title">
             <div class="section-heading"><div><p class="step">3</p><h2 id="results-title">Resultados</h2></div><span id="forecast-summary" class="hint"></span></div>
+            <section class="validation-panel" aria-labelledby="validation-title">
+                <div><h3 id="validation-title">Validación temporal</h3><p id="validation-summary">Los últimos períodos se reservan como datos no vistos para evaluar el modelo.</p></div>
+                <div id="metrics-grid" class="metrics-grid"></div>
+            </section>
             <div class="chart-wrapper"><canvas id="forecast-chart" aria-label="Gráfica de datos históricos y forecast" role="img"></canvas></div>
             <div class="table-wrapper"><table id="forecast-table"><caption>Valores pronosticados</caption><thead></thead><tbody></tbody></table></div>
         </section>

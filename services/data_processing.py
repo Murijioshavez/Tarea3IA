@@ -97,6 +97,11 @@ def prepare_forecast_data(
         raise DatasetValidationError(
             f"Se requieren al menos {MINIMUM_OBSERVATIONS} observaciones para inferir la frecuencia temporal."
         )
+    if len(context) <= horizon + MINIMUM_OBSERVATIONS:
+        raise DatasetValidationError(
+            "No hay suficientes observaciones para separar entrenamiento y validación. "
+            f"Usa un horizonte menor que {len(context) - MINIMUM_OBSERVATIONS}."
+        )
 
     frequency = pd.infer_freq(context[timestamp_column])
     if frequency is None:

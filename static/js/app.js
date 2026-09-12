@@ -92,6 +92,30 @@ function renderForecastTable(forecast) {
     });
 }
 
+function renderMetrics(validation) {
+    document.querySelector("#validation-summary").textContent = `Entrenamiento: ${validation.train_observations} observaciones · Validación: ${validation.validation_observations} observaciones no vistas.`;
+    const grid = document.querySelector("#metrics-grid");
+    grid.replaceChildren();
+    Object.entries(validation.metrics).forEach(([target, values]) => {
+        const card = document.createElement("article");
+        card.className = "metric-card";
+        const heading = document.createElement("h4");
+        heading.textContent = target;
+        const metricValues = document.createElement("div");
+        metricValues.className = "metric-values";
+        [["MAE", formatNumber(values.mae)], ["RMSE", formatNumber(values.rmse)], ["MAPE", values.mape === null ? "No aplica" : `${formatNumber(values.mape)} %`]].forEach(([label, value]) => {
+            const metric = document.createElement("span");
+            metric.append(label);
+            const number = document.createElement("strong");
+            number.textContent = value;
+            metric.append(number);
+            metricValues.append(metric);
+        });
+        card.append(heading, metricValues);
+        grid.append(card);
+    });
+}
+
 function renderChart(result) {
     if (!window.Chart) throw new Error("No se pudo cargar la librería de gráficas. Comprueba tu conexión e inténtalo de nuevo.");
     if (state.chart) state.chart.destroy();
@@ -108,10 +132,12 @@ function renderChart(result) {
         const lower = byDate(targetForecast, "lower");
         const upper = byDate(targetForecast, "upper");
         const predictions = byDate(targetForecast, "prediction");
+        const validationPredictions = byDate(result.validation.predictions.filter((row) => row.target === target), "prediction");
         datasets.push({ label: `${target} · histórico`, data: labels.map((label) => historical.get(label) ?? null), borderColor: color, borderWidth: 2, pointRadius: 0, tension: .2 });
         datasets.push({ label: `${target} · límite inferior`, data: labels.map((label) => lower.get(label) ?? null), borderColor: "transparent", borderWidth: 0, pointRadius: 0, fill: false });
         datasets.push({ label: `${target} · intervalo 10–90 %`, data: labels.map((label) => upper.get(label) ?? null), borderColor: "transparent", backgroundColor: `${color}26`, borderWidth: 0, pointRadius: 0, fill: "-1" });
         datasets.push({ label: `${target} · forecast`, data: labels.map((label) => predictions.get(label) ?? null), borderColor: color, borderDash: [6, 4], borderWidth: 2, pointRadius: 2, tension: .2 });
+        datasets.push({ label: `${target} · validación estimada`, data: labels.map((label) => validationPredictions.get(label) ?? null), borderColor: color, borderDash: [2, 3], borderWidth: 2, pointRadius: 3, tension: .2 });
     });
     state.chart = new Chart(document.querySelector("#forecast-chart"), {
         type: "line", data: { labels, datasets },
@@ -153,6 +179,7 @@ forecastForm.addEventListener("submit", async (event) => {
         const result = await readResponse(await fetch("/api/forecast", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataset_id: state.datasetId, timestamp_column: state.timestampColumn, target_columns: targetColumns, horizon: Number(document.querySelector("#horizon").value) }) }));
         renderChart(result);
         renderForecastTable(result.forecast);
+        renderMetrics(result.validation);
         document.querySelector("#forecast-summary").textContent = `${result.metadata.horizon} periodos · frecuencia ${result.metadata.frequency}`;
         document.querySelector("#results-section").classList.remove("hidden");
         showStatus("Forecast generado correctamente.");

@@ -38,7 +38,11 @@ def main() -> None:
         assert response.status_code == 200, response.get_json()
         body = response.get_json()
         assert len(body["forecast"]) == 4, body
+        assert body["validation"]["train_observations"] == 26, body
+        assert body["validation"]["validation_observations"] == 4, body
+        assert set(body["validation"]["metrics"]["value"]) == {"mae", "rmse", "mape"}, body
         print("API integration test: OK")
+        print("Validation metrics:", body["validation"]["metrics"])
         print(body["forecast"])
     finally:
         Path(app.config["UPLOAD_FOLDER"], f"{dataset_id}.csv").unlink(missing_ok=True)

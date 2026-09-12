@@ -23,3 +23,11 @@ python -m pip install -r requirements.txt
 La siguiente fase añadirá una prueba independiente que descargará el modelo
 `amazon/chronos-2` desde Hugging Face al ejecutarse. Sus pesos no se guardan en
 el repositorio.
+
+## Validación del modelo
+
+Cada forecast reserva los últimos `horizon` períodos del CSV como validación
+temporal. Chronos-2 predice ese tramo usando únicamente las observaciones
+anteriores y el backend compara las predicciones con los valores reales. El
+frontend muestra MAE, RMSE y MAPE por variable; después genera el pronóstico
+futuro usando todo el historial disponible.
