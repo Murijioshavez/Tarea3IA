@@ -7,3 +7,6 @@ __pycache__/
 # Runtime uploads and locally cached Hugging Face model weights
 uploads/
 .cache/
+
+# Datasets downloaded by scripts/fetch_dataset.py
+data/

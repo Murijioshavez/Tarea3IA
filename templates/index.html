@@ -25,9 +25,16 @@
         <section id="dataset-section" class="card hidden" aria-labelledby="dataset-title">
             <div class="section-heading"><div><p class="step">2</p><h2 id="dataset-title">Configura el forecast</h2></div><span id="dataset-summary" class="hint"></span></div>
             <div class="table-wrapper"><table id="preview-table"><caption>Vista previa del dataset</caption><thead></thead><tbody></tbody></table></div>
+            <div id="no-time-axis" class="callout" hidden>
+                <h3>Este archivo no es una serie temporal</h3>
+                <p>Ninguna de sus columnas contiene fechas, y Chronos-2 necesita un eje temporal para pronosticar. Los archivos <code>car_purchasing.csv</code> y <code>sales data file.csv</code> tal como vienen de Kaggle no tienen columna de fecha.</p>
+                <p>Genera la versión preparada y sube <code>data/car_purchasing.csv</code> en su lugar:</p>
+                <pre><code>python scripts\fetch_dataset.py</code></pre>
+            </div>
             <form id="forecast-form" class="forecast-form">
                 <label>Columna temporal<select id="timestamp-column" required></select></label>
-                <label>Variables a pronosticar<select id="target-columns" multiple required size="4" aria-describedby="target-help"></select><small id="target-help">Usa Ctrl/Cmd para seleccionar varias variables.</small></label>
+                <label>Variables a pronosticar<select id="target-columns" multiple size="4" aria-describedby="target-help"></select><small id="target-help">Usa Ctrl/Cmd para seleccionar varias variables.</small></label>
+                <label>Covariables<select id="covariate-columns" multiple size="4" aria-describedby="covariate-help"></select><small id="covariate-help">Opcional. Variables explicativas conocidas para el tramo de validación.</small></label>
                 <label>Horizonte<input id="horizon" type="number" min="1" max="1024" value="12" required><small>Número de periodos futuros (1–1024).</small></label>
                 <button type="submit" class="button">Generar forecast</button>
             </form>

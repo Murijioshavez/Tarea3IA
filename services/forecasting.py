@@ -34,28 +34,35 @@ def get_pipeline() -> Chronos2Pipeline:
     return _pipeline
 
 
+def _predict(context, prepared: PreparedForecastData, *, future_df):
+    """Run one Chronos-2 pass; extra columns in the context act as past covariates."""
+    return get_pipeline().predict_df(
+        context,
+        future_df=future_df,
+        prediction_length=prepared.horizon,
+        quantile_levels=QUANTILES,
+        id_column="item_id",
+        timestamp_column="timestamp",
+        target=prepared.target_columns,
+        freq=prepared.frequency,
+    )
+
+
 def forecast(prepared: PreparedForecastData) -> dict[str, object]:
     try:
         train_frame = prepared.context.iloc[: -prepared.horizon].copy()
         validation_frame = prepared.context.iloc[-prepared.horizon :].copy()
-        validation_prediction_frame = get_pipeline().predict_df(
-            train_frame,
-            prediction_length=prepared.horizon,
-            quantile_levels=QUANTILES,
-            id_column="item_id",
-            timestamp_column="timestamp",
-            target=prepared.target_columns,
-            freq=prepared.frequency,
+
+        # During validation the holdout covariates are already observed, so they are passed
+        # as known future covariates. Beyond the end of the CSV they are unknown, so the
+        # future forecast can only use them as past covariates.
+        future_covariates = (
+            validation_frame[["item_id", "timestamp", *prepared.covariate_columns]]
+            if prepared.covariate_columns
+            else None
         )
-        prediction_frame = get_pipeline().predict_df(
-            prepared.context,
-            prediction_length=prepared.horizon,
-            quantile_levels=QUANTILES,
-            id_column="item_id",
-            timestamp_column="timestamp",
-            target=prepared.target_columns,
-            freq=prepared.frequency,
-        )
+        validation_prediction_frame = _predict(train_frame, prepared, future_df=future_covariates)
+        prediction_frame = _predict(prepared.context, prepared, future_df=None)
     except Exception as exc:
         raise ForecastingError("No fue posible generar el pronóstico. Revisa la configuración y vuelve a intentarlo.") from exc
 
@@ -79,6 +86,7 @@ def forecast(prepared: PreparedForecastData) -> dict[str, object]:
             "horizon": prepared.horizon,
             "frequency": prepared.frequency,
             "target_columns": prepared.target_columns,
+            "covariate_columns": prepared.covariate_columns,
             "quantiles": QUANTILES,
         },
     }
@@ -98,10 +106,26 @@ def build_validation_result(validation_frame, prediction_frame, prepared: Prepar
         forecast_values = comparison["predictions"].to_numpy(dtype=float)
         errors = actual_values - forecast_values
         nonzero = actual_values != 0
+
+        # Raw errors are unreadable on their own, so every run is scored against the two
+        # baselines it must beat to be worth anything: repeating the last observation
+        # (MASE) and predicting the training mean (R2).
+        train_values = prepared.context[target].to_numpy(dtype=float)[: -prepared.horizon]
+        naive_mae = float(np.mean(np.abs(actual_values - train_values[-1])))
+        variance = float(np.sum(np.square(actual_values - actual_values.mean())))
+        inside = (actual_values >= comparison["0.1"].to_numpy(dtype=float)) & (
+            actual_values <= comparison["0.9"].to_numpy(dtype=float)
+        )
+
         metrics[target] = {
             "mae": float(np.mean(np.abs(errors))),
             "rmse": float(np.sqrt(np.mean(np.square(errors)))),
             "mape": float(np.mean(np.abs(errors[nonzero] / actual_values[nonzero])) * 100) if np.any(nonzero) else None,
+            "mape_excluded": int((~nonzero).sum()),
+            "r2": float(1 - np.sum(np.square(errors)) / variance) if variance > 0 else None,
+            "mase": float(np.mean(np.abs(errors)) / naive_mae) if naive_mae > 0 else None,
+            "coverage": float(np.mean(inside) * 100),
+            "nominal_coverage": (QUANTILES[-1] - QUANTILES[0]) * 100,
         }
         predictions.extend(
             {

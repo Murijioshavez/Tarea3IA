@@ -4,3 +4,6 @@ Flask>=3.1,<4
 # Data processing and Chronos-2 inference
 pandas[pyarrow]>=2.2,<4
 chronos-forecasting>=2.0,<3
+
+# Reproducible dataset download (scripts/fetch_dataset.py)
+kagglehub[pandas-datasets]>=0.3,<2
