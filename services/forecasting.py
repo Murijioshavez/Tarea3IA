@@ -2,49 +2,24 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from threading import Lock
-
 import numpy as np
 
-os.environ.setdefault("HF_HOME", str(Path(__file__).resolve().parents[1] / ".cache" / "huggingface"))
-
-from chronos import Chronos2Pipeline
-
+from services.chronos_model import MODEL_ID, QUANTILES, predict
 from services.data_processing import PreparedForecastData
-
-
-MODEL_ID = "amazon/chronos-2"
-QUANTILES = [0.1, 0.5, 0.9]
-_pipeline: Chronos2Pipeline | None = None
-_pipeline_lock = Lock()
 
 
 class ForecastingError(RuntimeError):
     """An inference failure that should not expose internal details to clients."""
 
 
-def get_pipeline() -> Chronos2Pipeline:
-    global _pipeline
-    if _pipeline is None:
-        with _pipeline_lock:
-            if _pipeline is None:
-                _pipeline = Chronos2Pipeline.from_pretrained(MODEL_ID, device_map="cpu")
-    return _pipeline
-
-
 def _predict(context, prepared: PreparedForecastData, *, future_df):
     """Run one Chronos-2 pass; extra columns in the context act as past covariates."""
-    return get_pipeline().predict_df(
+    return predict(
         context,
         future_df=future_df,
-        prediction_length=prepared.horizon,
-        quantile_levels=QUANTILES,
-        id_column="item_id",
-        timestamp_column="timestamp",
-        target=prepared.target_columns,
-        freq=prepared.frequency,
+        horizon=prepared.horizon,
+        target_columns=prepared.target_columns,
+        frequency=prepared.frequency,
     )
 
 
